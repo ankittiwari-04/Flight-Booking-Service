@@ -1,0 +1,23 @@
+{
+  "name": "base_node_js_project_template",
+  "version": "1.0.0",
+  "description": "A Basic started boilerplate project for node",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js"
+  },
+  "author": "Ankit Tiwari",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "http": "^0.0.1-security",
+    "http-status-codes": "^2.3.0",
+    "mysql2": "^3.15.2",
+    "sequelize": "^6.37.7",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.3"
+  }
+}
