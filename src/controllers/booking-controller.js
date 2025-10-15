@@ -1,43 +1,67 @@
-const axios = require('axios');
 const { StatusCodes } = require('http-status-codes');
-const { BookingRepository } = require('../repositories');
-const { ServerConfig } = require('../../config');
-const db = require('../models');
-const AppError = require('../utils/errors/app-error');
+const { BookingService } = require('../services');
 const { SuccessResponse, ErrorResponse } = require('../utils/common');
 
-async function createBooking(data) {
-    const transaction = await db.sequelize.transaction();
+async function createBooking(req, res) {
     try {
-        const flight = await axios.get(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${data.flightId}`);
-        const flightData = flight.data.data;
+        const booking = await BookingService.createBooking({
+            flightId: req.body.flightId,
+            userId: req.body.userId,
+            noOfSeats: req.body.noOfSeats
+        });
 
-        if (data.noofSeats > flightData.totalSeats) {
-            throw new AppError('Not enough seats available', StatusCodes.BAD_REQUEST);
-        }
-
-        await transaction.commit();
-
-        return {
-            success: true,
-            message: "Successfully completed the request",
-            data: {},
-            error: {}
-        };
-
+        SuccessResponse.data = booking;
+        SuccessResponse.message = 'Successfully created booking';
+        return res.status(StatusCodes.CREATED).json(SuccessResponse);
     } catch (error) {
-        await transaction.rollback();
-        console.error("Error in createBooking:", error);
+        ErrorResponse.error = error;
+        ErrorResponse.message = error.message || 'Something went wrong';
+        return res
+            .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+            .json(ErrorResponse);
+    }
+}
 
-        return {
-            success: false,
-            message: error.message || "Something went wrong",
-            data: {},
-            error: {}
-        };
+async function makePayment(req, res) {
+    try {
+        const payment = await BookingService.makePayment({
+            bookingId: req.body.bookingId,
+            userId: req.body.userId,
+            totalCost: req.body.totalCost
+        });
+
+        SuccessResponse.data = payment;
+        SuccessResponse.message = 'Successfully completed payment';
+        return res.status(StatusCodes.OK).json(SuccessResponse);
+    } catch (error) {
+        ErrorResponse.error = error;
+        ErrorResponse.message = error.message || 'Something went wrong';
+        return res
+            .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+            .json(ErrorResponse);
+    }
+}
+
+async function cancelBooking(req, res) {
+    try {
+        const cancel = await BookingService.cancelBooking({
+            bookingId: req.body.bookingId
+        });
+
+        SuccessResponse.data = cancel;
+        SuccessResponse.message = 'Successfully cancelled booking';
+        return res.status(StatusCodes.OK).json(SuccessResponse);
+    } catch (error) {
+        ErrorResponse.error = error;
+        ErrorResponse.message = error.message || 'Something went wrong';
+        return res
+            .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+            .json(ErrorResponse);
     }
 }
 
 module.exports = {
-    createBooking
+    createBooking,
+    makePayment,
+    cancelBooking
 };

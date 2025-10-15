@@ -5,13 +5,9 @@ const { BOOKED, CANCELLED, INITIATED, PENDING } = BOOKING_STATUS;
 
 module.exports = (sequelize, DataTypes) => {
   class Booking extends Model {
-    static associate(models) {
-      Booking.belongsTo(models.Flight, {
-        foreignKey: 'flightId',
-        as: 'flight'
-      });
-    }
+    static associate(models) {}
   }
+
   Booking.init({
     flightId: {
       type: DataTypes.INTEGER,
@@ -27,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: INITIATED
     },
-    numberOfSeats: {
+    noOfSeats: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1
@@ -40,5 +36,6 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Booking',
   });
+
   return Booking;
 };
