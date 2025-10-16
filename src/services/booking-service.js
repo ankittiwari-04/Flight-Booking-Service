@@ -21,6 +21,7 @@ async function createBooking(data) {
 
         const totalBillingAmount = data.noOfSeats * flightData.price;
         const bookingPayload = { ...data, totalCost: totalBillingAmount, status: INITIATED };
+
         const booking = await bookingRepository.create(bookingPayload, transaction);
 
         await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${data.flightId}/seats`, {
@@ -29,35 +30,6 @@ async function createBooking(data) {
 
         await transaction.commit();
         return booking;
-
-    } catch (error) {
-        await transaction.rollback();
-        throw error;
-    }
-}
-
-async function makePayment(data) {
-    const transaction = await db.sequelize.transaction();
-    try {
-        const bookingDetails = await bookingRepository.get(data.bookingId, transaction);
-        const bookingTime = new Date(bookingDetails.createdAt);
-        const currentTime = new Date();
-
-        if (currentTime - bookingTime > 300000) {
-            throw new AppError('The booking has expired', StatusCodes.BAD_REQUEST);
-        }
-
-        if (bookingDetails.totalCost !== data.totalCost) {
-            throw new AppError('The amount of the payment doesnt match', StatusCodes.BAD_REQUEST);
-        }
-
-        if (bookingDetails.userId !== data.userId) {
-            throw new AppError('The user corresponding to the booking doesnt match', StatusCodes.BAD_REQUEST);
-        }
-
-        const response = await bookingRepository.update(data.bookingId, { status: BOOKED }, transaction);
-        await transaction.commit();
-        return response;
 
     } catch (error) {
         await transaction.rollback();
@@ -80,7 +52,6 @@ async function cancelBooking(data) {
         if (booking.status === INITIATED || booking.status === BOOKED) {
             await bookingRepository.update(data.bookingId, { status: CANCELLED }, transaction);
 
-            // Add seats back to the flight
             await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${booking.flightId}/seats/add`, {
                 seats: booking.noOfSeats
             });
@@ -90,6 +61,41 @@ async function cancelBooking(data) {
         } else {
             throw new AppError('Cannot cancel booking in current state', StatusCodes.BAD_REQUEST);
         }
+
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+}
+
+async function makePayment(data) {
+    const transaction = await db.sequelize.transaction();
+    try {
+        const bookingDetails = await bookingRepository.get(data.bookingId, transaction);
+
+        if (bookingDetails.status === CANCELLED) {
+            throw new AppError('The booking has already been cancelled', StatusCodes.BAD_REQUEST);
+        }
+
+        const bookingTime = new Date(bookingDetails.createdAt);
+        const currentTime = new Date();
+
+        if (currentTime - bookingTime > 300000) {
+            await cancelBooking({ bookingId: data.bookingId });
+            throw new AppError('The booking has expired', StatusCodes.BAD_REQUEST);
+        }
+
+        if (bookingDetails.totalCost !== data.totalCost) {
+            throw new AppError('The amount of the payment doesnt match', StatusCodes.BAD_REQUEST);
+        }
+
+        if (bookingDetails.userId !== data.userId) {
+            throw new AppError('The user corresponding to the booking doesnt match', StatusCodes.BAD_REQUEST);
+        }
+
+        const response = await bookingRepository.update(data.bookingId, { status: BOOKED }, transaction);
+        await transaction.commit();
+        return response;
 
     } catch (error) {
         await transaction.rollback();
