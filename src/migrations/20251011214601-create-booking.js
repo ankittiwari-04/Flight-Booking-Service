@@ -26,7 +26,7 @@ module.exports = {
         allowNull: false,
         defaultValue: INITIATED
       },
-      numberOfSeats: {
+      numberOfSeats: {   // ✅ correct column name
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 1

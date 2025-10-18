@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: INITIATED
     },
-    noOfSeats: {
+    numberOfSeats: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1
